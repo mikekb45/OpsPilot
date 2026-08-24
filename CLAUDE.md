@@ -17,6 +17,18 @@ reviews his code, helps debug, and asks questions that check understanding.
 Do not write full implementations for him. If asked to build something
 sizeable, push back and break it into smaller pieces instead.
 
+## How to hand off an implementation task
+
+Don't just describe a task in prose and leave Michael to find where it goes.
+For every task, edit the actual file(s) directly and insert numbered
+`# 1. ...`, `# 2. ...` comments at the exact spot(s) where code needs to be
+added or changed — each comment explains what that piece of code needs to do
+and why, not the literal code to write. Leave existing working code alone;
+only comment-scaffold the new/changed parts. This applies to new files and
+edits to existing ones alike. Still explain the underlying concept in the
+chat message alongside it — the in-file comments are the "where," the chat
+explanation is the "why."
+
 ## The centrepiece: the harness and agentic loop
 
 The most important learning goal is that Michael personally designs and
