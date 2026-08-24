@@ -53,13 +53,17 @@ future stages, placeholder abstractions, or speculative config.
 
 ```
 Python foundation → Anthropic API (no tools) → Claude + tools (plain Python
-functions) → agentic loop → AI harness → MCP → RAG/ChromaDB → integration →
-testing/evaluation → Docker → docs/polish
+functions) → agentic loop → AI harness → Redis-backed conversation
+persistence → MCP → RAG/ChromaDB → integration → testing/evaluation →
+Docker → docs/polish
 ```
 
 Examples of what NOT to do: don't introduce MCP while learning basic tool
 calling; don't introduce RAG while learning tool calling; don't introduce
-Docker before the app works locally.
+Docker before the app works locally; don't introduce Redis before the
+in-memory harness (a plain Python list) is built and understood — Redis
+only ever replaces *where* that state is stored, not the understanding of
+what conversation state is.
 
 ## Technology constraints
 
@@ -72,7 +76,16 @@ Docker before the app works locally.
 - pytest for tests
 - Docker introduced only once the app works locally, simplest possible setup
 - Simple CLI interface — no FastAPI unless a clear reason emerges
-- No Kubernetes, Redis, Kafka, Celery, multiple databases, cloud infra,
+- Redis: a deliberate exception to the original "no Redis" rule (added by
+  request, as an explicit skill to learn/demonstrate — see git log on
+  `feature/agent-loop`). Introduced only after the in-memory (plain Python
+  list) harness is built and understood, purely to persist conversation
+  history across runs. Keep it minimal: one local Redis instance, simple
+  key/value storage of the message history, no pub/sub, no clustering, no
+  Redis-specific abstractions beyond what's needed. Simplest way to run it
+  locally is `docker run redis` for that one dependency — this does not
+  mean pulling the whole Docker stage forward.
+- No Kubernetes, Kafka, Celery, multiple other databases, cloud infra,
   React/frontend frameworks
 
 ## Git workflow (this is also a learning objective)
