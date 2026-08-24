@@ -1,4 +1,15 @@
+"""
+OpsPilot - Stage 3: the agentic loop.
+
+Wraps the tool-use round-trip from the previous stage in a loop that
+keeps going until Claude stops asking for tools, or a safety cap on
+iterations is hit. Still one tool, and no error handling around tool
+execution yet - just the loop mechanics: request, check, execute
+(possibly several tools at once), respond, repeat.
+"""
+
 import json
+
 from dotenv import load_dotenv
 from anthropic import Anthropic
 
@@ -6,10 +17,11 @@ load_dotenv()
 client = Anthropic()
 
 MODEL_ID = "claude-sonnet-5"
+MAX_ITERATIONS = 5
 
 
 def get_queue_status():
-    # Dummy data standing in for a real queue status check.
+    """Dummy data standing in for a real queue status check."""
     return {
         "queue_name": "OrderQueue",
         "depth": 42,
@@ -30,48 +42,33 @@ tool_schema = {
 
 messages = [{"role": "user", "content": "What is the status of the order queue?"}]
 
-response = client.messages.create(
-    model=MODEL_ID,
-    max_tokens=200,
-    tools=[tool_schema],
-    messages=messages,
-)
+for iteration in range(MAX_ITERATIONS):
+    response = client.messages.create(
+        model=MODEL_ID,
+        max_tokens=300,
+        tools=[tool_schema],
+        messages=messages,
+    )
+    messages.append({"role": "assistant", "content": response.content})
 
-print(response.content)
-print(response.stop_reason)
-
-# Claude doesn't execute tools itself - it only requests one. Find the
-# tool_use block among whatever came back (it may be mixed in with
-# text, as seen above).
-for block in response.content:
-    if block.type == "tool_use":
-        tool_use_block = block
+    if response.stop_reason != "tool_use":
+        print("Final answer:", response.content[0].text)
         break
 
-# Actually run the real function ourselves.
-queue_status = get_queue_status()
-
-# Send the whole conversation back, extended with Claude's tool
-# request and our tool result, so Claude can finish answering.
-messages.append({"role": "assistant", "content": response.content})
-messages.append(
-    {
-        "role": "user",
-        "content": [
-            {
-                "type": "tool_result",
-                "tool_use_id": tool_use_block.id,
-                "content": json.dumps(queue_status),
-            }
-        ],
-    }
-)
-
-final_response = client.messages.create(
-    model=MODEL_ID,
-    max_tokens=200,
-    tools=[tool_schema],
-    messages=messages,
-)
-
-print(final_response.content[0].text)
+    # Claude can request more than one tool call in a single turn -
+    # collect and execute every tool_use block, not just the first.
+    tool_results = []
+    for block in response.content:
+        if block.type == "tool_use":
+            tool_results.append(
+                {
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "content": json.dumps(get_queue_status()),
+                }
+            )
+    messages.append({"role": "user", "content": tool_results})
+else:
+    # Runs only if the loop used up every iteration without a
+    # `break` - i.e. Claude never stopped asking for tools.
+    print(f"Stopped after {MAX_ITERATIONS} iterations without a final answer.")
