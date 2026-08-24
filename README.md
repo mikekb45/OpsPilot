@@ -25,6 +25,10 @@ production system, infrastructure, database, or monitoring tool.
   tools, state, the control loop, and the harness that runs it
 - Writing my own agentic loop and AI harness from scratch (state, tool
   execution, error handling, iteration limits, completion detection)
+- Persisting agent conversation history in Redis, once the in-memory
+  harness is built and understood — a deliberate detour to pick up a
+  widely-used piece of backend infrastructure, on top of (not instead of)
+  understanding conversation state as plain Python data first
 - Plain Python tool calling, then what MCP adds on top of that
 - Retrieval-augmented generation with ChromaDB, implemented directly
   (chunking, embeddings, similarity search) rather than via a framework
@@ -46,11 +50,17 @@ Later stages (not yet started): plain Python tools returning dummy
 operational data → an MCP server exposing similar tools → a ChromaDB-backed
 retrieval step over a handful of small fictional docs in `knowledge/` →
 pytest-based tests and evaluation scenarios → a simple Docker setup.
+Conversation history currently lives in memory as a plain Python list for
+the duration of one run; once the harness stage is done, it will move to a
+local Redis instance so a conversation can survive across runs.
 
 ## Technology
 
 - Python 3.14, `venv`, `pip`, `requirements.txt`
 - Anthropic Python SDK (used directly, no agent framework)
+- Redis, for persisting conversation history across runs (planned, not yet
+  built — introduced after the in-memory harness; run locally, most simply
+  via `docker run redis`, not part of a wider containerisation effort)
 - ChromaDB for retrieval (used directly, no LangChain/LlamaIndex)
 - MCP (introduced after plain tool calling is understood)
 - pytest
@@ -75,8 +85,8 @@ application code has been written yet.
 
 ```
 Python foundation → Anthropic API (no tools) → tool calling → agentic loop
-→ AI harness → MCP → RAG/ChromaDB → integration → testing/evaluation
-→ Docker → documentation/polish
+→ AI harness → Redis-backed conversation persistence → MCP → RAG/ChromaDB
+→ integration → testing/evaluation → Docker → documentation/polish
 ```
 
 ## Security
