@@ -38,29 +38,36 @@ production system, infrastructure, database, or monitoring tool.
 
 ## Planned Architecture
 
-Nothing beyond project scaffolding exists yet. The intended shape, once
-built stage by stage:
+The core loop is built and working:
 
 ```
 User → Claude → tool needed? → harness executes tool → tool result → Claude
 → ... → final diagnosis
 ```
 
-Later stages (not yet started): plain Python tools returning dummy
-operational data → an MCP server exposing similar tools → a ChromaDB-backed
-retrieval step over a handful of small fictional docs in `knowledge/` →
-pytest-based tests and evaluation scenarios → a simple Docker setup.
-Conversation history currently lives in memory as a plain Python list for
-the duration of one run; once the harness stage is done, it will move to a
-local Redis instance so a conversation can survive across runs.
+`main.py` implements this today with two dummy tools (`get_queue_status`,
+`get_recent_errors`), a hand-rolled agentic loop with an iteration cap, and
+harness-level error handling (an unknown tool name or a failing tool call
+both produce a graceful error result instead of crashing).
+
+Conversation history is no longer memory-only: it's persisted to a local
+Redis instance (via `docker-compose.yml`) at every safe checkpoint, so an
+interrupted run can be resumed rather than losing all progress, and a
+finished conversation can be reloaded and shown without re-calling the API.
+
+Later stages (not yet started): an MCP server exposing similar tools → a
+ChromaDB-backed retrieval step over a handful of small fictional docs in
+`knowledge/` → pytest-based tests and evaluation scenarios → a simple
+Docker setup for the app itself.
 
 ## Technology
 
 - Python 3.14, `venv`, `pip`, `requirements.txt`
 - Anthropic Python SDK (used directly, no agent framework)
-- Redis, for persisting conversation history across runs (planned, not yet
-  built — introduced after the in-memory harness; run locally, most simply
-  via `docker run redis`, not part of a wider containerisation effort)
+- Redis, for persisting conversation history across runs — introduced
+  after the in-memory harness was built and understood; run locally via a
+  minimal `docker-compose.yml` (one `redis` service), not part of a wider
+  containerisation effort for the app itself
 - ChromaDB for retrieval (used directly, no LangChain/LlamaIndex)
 - MCP (introduced after plain tool calling is understood)
 - pytest
@@ -77,9 +84,23 @@ currently is.
 
 ## Project Status
 
-**Initial setup.** Only `CLAUDE.md`, `README.md`, `.gitignore`, and a local
-`.env` (git-ignored, holds the Anthropic API key) exist so far. No
-application code has been written yet.
+The following stages are complete, in `main.py`:
+
+- A plain call to the Anthropic Messages API (no tools).
+- Tool calling: one manual request → `tool_use` → execute → `tool_result`
+  round-trip.
+- The agentic loop: the round-trip above, repeated until Claude stops
+  asking for tools, with an iteration cap.
+- The AI harness: dispatching to the correct tool by name (not just a
+  single hardcoded function), and error handling around tool execution
+  (an unknown tool name or a failing tool call both produce a graceful
+  error result instead of crashing).
+- Redis-backed conversation persistence: the conversation survives across
+  separate runs, checkpointed at every safe point, and an interrupted
+  investigation can be resumed rather than restarted.
+
+Not yet started: MCP, RAG/ChromaDB, testing/evaluation, and Docker for the
+app itself.
 
 ## Planned Development
 
