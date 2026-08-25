@@ -82,9 +82,12 @@ what conversation state is.
   list) harness is built and understood, purely to persist conversation
   history across runs. Keep it minimal: one local Redis instance, simple
   key/value storage of the message history, no pub/sub, no clustering, no
-  Redis-specific abstractions beyond what's needed. Simplest way to run it
-  locally is `docker run redis` for that one dependency — this does not
-  mean pulling the whole Docker stage forward.
+  Redis-specific abstractions beyond what's needed. Run locally via a
+  minimal `docker-compose.yml` (one `redis` service, by request — see git
+  log on `feature/redis-persistence`) rather than a raw `docker run`
+  command — this does not mean pulling the whole app-containerisation
+  Docker stage forward; the compose file exists only to manage the Redis
+  dependency.
 - No Kubernetes, Kafka, Celery, multiple other databases, cloud infra,
   React/frontend frameworks
 
