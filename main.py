@@ -1,12 +1,29 @@
 import json
+import os
 
 from dotenv import load_dotenv
 from anthropic import Anthropic
 import redis
 
 load_dotenv()
-client = Anthropic()
-redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+
+def get_api_key():
+    # Docker Compose mounts a file-based secret at a fixed path,
+    # /run/secrets/<name> - if it's there, we're containerised; if
+    # not, fall back to ANTHROPIC_API_KEY from the environment (via
+    # .env), for running this locally.
+    secret_path = "/run/secrets/anthropic_api_key"
+    if os.path.exists(secret_path):
+        with open(secret_path) as f:
+            return f.read().strip()
+    return os.getenv("ANTHROPIC_API_KEY")
+
+
+client = Anthropic(api_key=get_api_key())
+# REDIS_HOST lets this connect to "redis" (the Compose service name)
+# when containerised, or "localhost" for running this directly.
+redis_client = redis.Redis(host=os.getenv("REDIS_HOST", "localhost"), port=6379, decode_responses=True)
 
 MODEL_ID = "claude-sonnet-5"
 MAX_TOKENS = 1024

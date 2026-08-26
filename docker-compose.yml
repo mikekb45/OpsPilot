@@ -1,5 +1,18 @@
+secrets:
+  anthropic_api_key:
+    file: ./anthropic_api_key.txt
+
 services:
   redis:
     image: redis:latest
     ports:
       - "6379:6379"
+
+  harness:
+    build: .
+    environment:
+      REDIS_HOST: redis
+    secrets:
+      - anthropic_api_key
+    depends_on:
+      - redis

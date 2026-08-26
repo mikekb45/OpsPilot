@@ -128,6 +128,20 @@ The Anthropic API key lives only in `.env` (git-ignored). Never print it, ask
 for it to be pasted, put it in code/logs/examples/CLAUDE.md/README.md, or
 commit `.env`. Maintain `.env.example` with a placeholder value.
 
+ANTHROPIC_API_KEY reaches the containerised harness via Docker Compose file
+secrets (`secrets:` in `docker-compose.yml`, sourced from a local,
+git-ignored `anthropic_api_key.txt` — see `anthropic_api_key.txt.example`
+for the placeholder), not `env_file`/`environment` — this is deliberate:
+an env-var-based secret gets printed in plaintext by anything that resolves
+a service's final config (`docker compose config`, `docker inspect`, etc.),
+which is exactly how this key got exposed once already (see git log on
+`feature/docker-compose-full`). A file-based secret is never represented as
+an environment variable, so there's nothing for those commands to leak.
+Keep this pattern for any future container secret. Separately: still avoid
+running `docker compose config` unqualified if `environment`/`env_file` is
+ever used for anything — use `docker compose config --quiet` to validate
+`docker-compose.yml` syntax without resolving/printing values at all.
+
 ## Python teaching
 
 Michael knows basic Python (functions, classes) but is learning modern
