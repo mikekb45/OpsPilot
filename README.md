@@ -112,7 +112,18 @@ Python foundation → Anthropic API (no tools) → tool calling → agentic loop
 
 ## Security
 
-The Anthropic API key is stored only in a local `.env` file, which is
-listed in `.gitignore` and is never committed. `.env.example` documents the
-required variable name with a placeholder value. No secrets are put into
-source code, logs, or documentation.
+Running locally, the Anthropic API key is stored only in a local `.env`
+file, which is listed in `.gitignore` and is never committed. `.env.example`
+documents the required variable name with a placeholder value.
+
+Running containerised, the key is instead injected as a Docker Compose file
+secret, sourced from a local, git-ignored `anthropic_api_key.txt`
+(`anthropic_api_key.txt.example` documents the placeholder). Deliberately
+not passed as an environment variable in this case: anything that resolves
+a container's final config (`docker compose config`, `docker inspect`, ...)
+prints environment variables in plaintext, which is exactly how this key
+was exposed once during development. A file-based secret was never
+represented as an environment variable in the first place, so there's
+nothing for those commands to leak.
+
+No secrets are put into source code, logs, or documentation.
