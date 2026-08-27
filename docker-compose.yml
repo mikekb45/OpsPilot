@@ -9,7 +9,9 @@ services:
       - "6379:6379"
 
   harness:
-    build: .
+    build:
+      context: .
+      dockerfile: harness/Dockerfile
     environment:
       REDIS_HOST: redis
     secrets:
