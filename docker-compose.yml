@@ -18,3 +18,12 @@ services:
       - anthropic_api_key
     depends_on:
       - redis
+
+  # 1. Add an mcp-server service here:
+  #      - build: - this time a mapping, not a bare path, since the
+  #        Dockerfile isn't the default name. Two keys under it:
+  #        context: . (same build context as harness) and
+  #        dockerfile: mcp_server.Dockerfile (tells Compose which file
+  #        to actually use, instead of the default "Dockerfile").
+  #      - ports: - publish 8000, same shape as redis's "6379:6379":
+  #        "8000:8000".

@@ -1,5 +1,6 @@
 venv/
 .git/
 .env
+anthropic_api_key.txt
 __pycache__/
 *.pyc
