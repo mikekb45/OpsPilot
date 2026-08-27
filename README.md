@@ -45,7 +45,7 @@ User → Claude → tool needed? → harness executes tool → tool result → C
 → ... → final diagnosis
 ```
 
-`main.py` implements this today with two dummy tools (`get_queue_status`,
+`harness/main.py` implements this today with two dummy tools (`get_queue_status`,
 `get_recent_errors`), a hand-rolled agentic loop with an iteration cap, and
 harness-level error handling (an unknown tool name or a failing tool call
 both produce a graceful error result instead of crashing).
@@ -84,7 +84,7 @@ currently is.
 
 ## Project Status
 
-The following stages are complete, in `main.py`:
+The following stages are complete, in `harness/main.py`:
 
 - A plain call to the Anthropic Messages API (no tools).
 - Tool calling: one manual request → `tool_use` → execute → `tool_result`
