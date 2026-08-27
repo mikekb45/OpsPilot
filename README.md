@@ -45,33 +45,44 @@ User → Claude → tool needed? → harness executes tool → tool result → C
 → ... → final diagnosis
 ```
 
-`harness/main.py` implements this today with two dummy tools (`get_queue_status`,
-`get_recent_errors`), a hand-rolled agentic loop with an iteration cap, and
-harness-level error handling (an unknown tool name or a failing tool call
-both produce a graceful error result instead of crashing).
+`harness/main.py` implements this today with a hand-rolled agentic loop
+(iteration cap included), talking to a separate `mcp_server/server.py`
+process over the Model Context Protocol instead of calling local Python
+functions directly. Two dummy tools (`get_queue_status`, `get_recent_errors`)
+are defined once, on the MCP server, and discovered dynamically by the
+harness at startup - no tool schemas or dispatch logic hardcoded on the
+client side. Unknown-tool and tool-execution error handling live on the
+server side of that boundary now too, reported back via the protocol's own
+`is_error` field.
 
 Conversation history is no longer memory-only: it's persisted to a local
-Redis instance (via `docker-compose.yml`) at every safe checkpoint, so an
-interrupted run can be resumed rather than losing all progress, and a
-finished conversation can be reloaded and shown without re-calling the API.
+Redis instance at every safe checkpoint, so an interrupted run can be
+resumed rather than losing all progress, and a finished conversation can be
+reloaded and shown without re-calling the API.
 
-Later stages (not yet started): an MCP server exposing similar tools → a
-ChromaDB-backed retrieval step over a handful of small fictional docs in
-`knowledge/` → pytest-based tests and evaluation scenarios → a simple
-Docker setup for the app itself.
+All three pieces - `harness`, `mcp-server`, and `redis` - run as their own
+Docker Compose service, each in its own top-level directory
+(`harness/`, `mcp_server/`), talking to each other over the network by
+Compose service name rather than `localhost`.
+
+Later stages (not yet started): a ChromaDB-backed retrieval step over a
+handful of small fictional docs in `knowledge/` → pytest-based tests and
+evaluation scenarios.
 
 ## Technology
 
 - Python 3.14, `venv`, `pip`, `requirements.txt`
 - Anthropic Python SDK (used directly, no agent framework)
 - Redis, for persisting conversation history across runs — introduced
-  after the in-memory harness was built and understood; run locally via a
-  minimal `docker-compose.yml` (one `redis` service), not part of a wider
-  containerisation effort for the app itself
+  after the in-memory harness was built and understood; one `redis`
+  service in `docker-compose.yml`, alongside the harness and MCP server
 - ChromaDB for retrieval (used directly, no LangChain/LlamaIndex)
-- MCP (introduced after plain tool calling is understood)
+- MCP, via the official Python SDK's `MCPServer`/`Client` classes - tools
+  defined once on a standalone server, discovered and called by the
+  harness over HTTP rather than hardcoded on the client side
 - pytest
-- Docker (introduced once the app works locally)
+- Docker - every service (`harness`, `mcp-server`, `redis`) containerised
+  and orchestrated via a single `docker-compose.yml`
 - Plain CLI — no web framework unless a clear need appears
 
 ## Development Approach
@@ -84,7 +95,7 @@ currently is.
 
 ## Project Status
 
-The following stages are complete, in `harness/main.py`:
+The following stages are complete:
 
 - A plain call to the Anthropic Messages API (no tools).
 - Tool calling: one manual request → `tool_use` → execute → `tool_result`
@@ -98,9 +109,14 @@ The following stages are complete, in `harness/main.py`:
 - Redis-backed conversation persistence: the conversation survives across
   separate runs, checkpointed at every safe point, and an interrupted
   investigation can be resumed rather than restarted.
+- MCP: tool definitions and execution moved off the harness entirely, onto
+  a standalone `mcp-server` the harness talks to over HTTP. Both tools
+  (`get_queue_status`, `get_recent_errors`) are discovered dynamically, not
+  hardcoded client-side.
+- Full containerisation: `harness`, `mcp-server`, and `redis` each run as
+  their own Docker Compose service.
 
-Not yet started: MCP, RAG/ChromaDB, testing/evaluation, and Docker for the
-app itself.
+Not yet started: RAG/ChromaDB and testing/evaluation.
 
 ## Planned Development
 
