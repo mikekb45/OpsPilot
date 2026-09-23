@@ -27,3 +27,5 @@ services:
       dockerfile: mcp_server/Dockerfile
     ports:
       - "8000:8000"
+    volumes:
+      - ./chroma_data:/app/chroma_data

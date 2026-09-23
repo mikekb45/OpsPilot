@@ -31,6 +31,12 @@ MAX_ITERATIONS = 5
 REDIS_KEY = "opspilot:conversation"
 MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8000/mcp")
 
+SYSTEM_PROMPT = (
+    "You are OpsPilot, an autonomous agent investigating issues in the order queue. "
+    "You have access to three tools: get_queue_status, get_recent_errors, and search_knowledge_base. "
+    "Use these tools as needed to investigate the issue thoroughly, and continue until you can provide a complete and confident diagnosis."
+)
+
 
 def get_text(content):
     # Find the first text block in a response's content list.
@@ -85,6 +91,7 @@ async def main():
                 response = client.messages.create(
                     model=MODEL_ID,
                     max_tokens=MAX_TOKENS,
+                    system=SYSTEM_PROMPT,
                     tools=tool_schemas,
                     messages=messages,
                 )
