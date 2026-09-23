@@ -1,2 +1,3 @@
 .env
 anthropic_api_key.txt
+chroma_data/
