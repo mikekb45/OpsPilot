@@ -65,9 +65,20 @@ Docker Compose service, each in its own top-level directory
 (`harness/`, `mcp_server/`), talking to each other over the network by
 Compose service name rather than `localhost`.
 
-Later stages (not yet started): a ChromaDB-backed retrieval step over a
-handful of small fictional docs in `knowledge/` → pytest-based tests and
-evaluation scenarios.
+Retrieval-augmented generation is wired in as a third MCP tool,
+`search_knowledge_base`, rather than as a separate code path: `rag/build_index.py`
+splits five small fictional docs in `knowledge/` into chunks on their
+markdown section headers, embeds them (via Chroma's default embedding
+function - nothing here calls an embedding model directly), and stores
+them in a local, persistent Chroma collection. `mcp-server` reads that
+same collection to answer `search_knowledge_base` calls, so the harness's
+dispatch loop needed no changes at all to pick up a third tool alongside
+the original two. A `SYSTEM_PROMPT` was added for the first time to get
+Claude to actually use it - without one, tool use (including which tools
+to call at all) was inconsistent between otherwise-identical runs.
+
+Later stages (not yet started): pytest-based tests and evaluation
+scenarios.
 
 ## Technology
 
@@ -76,7 +87,8 @@ evaluation scenarios.
 - Redis, for persisting conversation history across runs — introduced
   after the in-memory harness was built and understood; one `redis`
   service in `docker-compose.yml`, alongside the harness and MCP server
-- ChromaDB for retrieval (used directly, no LangChain/LlamaIndex)
+- ChromaDB for retrieval (used directly, no LangChain/LlamaIndex) - local,
+  persistent, embedded (no separate Chroma service)
 - MCP, via the official Python SDK's `MCPServer`/`Client` classes - tools
   defined once on a standalone server, discovered and called by the
   harness over HTTP rather than hardcoded on the client side
@@ -115,8 +127,13 @@ The following stages are complete:
   hardcoded client-side.
 - Full containerisation: `harness`, `mcp-server`, and `redis` each run as
   their own Docker Compose service.
+- RAG: a third MCP tool, `search_knowledge_base`, retrieves relevant chunks
+  from a Chroma index built from `knowledge/` - the harness required no
+  changes to pick it up, since it was already discovering tools
+  dynamically. Required adding a system prompt (the harness's first) to
+  get Claude to actually use it consistently.
 
-Not yet started: RAG/ChromaDB and testing/evaluation.
+Not yet started: testing/evaluation.
 
 ## Planned Development
 
